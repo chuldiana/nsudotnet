@@ -48,50 +48,69 @@ namespace Chul.Nsudotnet.LinesCounter
             bool commentStarted = false;
             while ((str = fileReader.ReadLine()) != null)
             {
-                if (String.IsNullOrEmpty(str))
+                if (String.IsNullOrWhiteSpace(str))
                 {
                     continue;
                 }
-                int endCommentIndex = str.IndexOf("*/", StringComparison.Ordinal);
-                if (commentStarted)
+                bool lineToCount = false;
+                bool previousSlash = false;
+                bool previousStar = false;
+                for (int i = 0; i < str.Length; i++)
                 {
-                    if (endCommentIndex != -1)
+                    if (commentStarted)
                     {
-                        commentStarted = false;
-                        str = str.Remove(0, endCommentIndex + 2);
-                    }
-                    else
-                    {
+                        if (previousStar)
+                        {
+                            if (str[i] == '/')
+                            {
+                                previousStar = false;
+                                commentStarted = false;
+                                continue;
+                            }
+                            else
+                            {
+                                previousStar = false;
+                            }
+                        }
+
+                        if (str[i] == '*')
+                        {
+                            previousStar = true;
+                        }
                         continue;
                     }
-                }
-                str = str.Trim();
-                int lineCommentIndex = str.IndexOf("//", StringComparison.Ordinal);
-                if (lineCommentIndex != -1)
-                {
-                    if (lineCommentIndex == 0)
+
+                    if (previousSlash)
                     {
+                        if (str[i] == '/')
+                        {
+                            break;
+                        }
+                        if (str[i] == '*')
+                        {
+                            commentStarted = true;
+                            previousSlash = false;
+                            continue;
+                        }
+                        lineToCount = true;
+                    }
+
+                    previousSlash = false;
+
+                    if (str[i] == '/')
+                    {
+                        previousSlash = true;
                         continue;
                     }
-                    else
+                    if (!lineToCount)
                     {
-                        str = str.Substring(0, lineCommentIndex+1);
+                        if (str[i] != ' ' && str[i] != '\t')
+                        {
+                            lineToCount = true;
+                        }
                     }
                 }
-               
-                int startCommentIndex = str.IndexOf("/*", StringComparison.Ordinal);
-                while (startCommentIndex != -1 && endCommentIndex != -1 && startCommentIndex<endCommentIndex)
-                {
-                    str = str.Remove(startCommentIndex, endCommentIndex - startCommentIndex + 2);
-                    startCommentIndex = str.IndexOf("/*", StringComparison.Ordinal);
-                    endCommentIndex = str.IndexOf("*/", StringComparison.Ordinal);
-                }
-                if (startCommentIndex != -1)
-                {
-                    commentStarted = true;
-                    str = str.Substring(0, startCommentIndex);
-                }
-                if (!String.IsNullOrWhiteSpace(str))
+                if (lineToCount)
                 {
                     linesCount++;
                 }
